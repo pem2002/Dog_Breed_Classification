@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dog Breed Classifier</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #e0f7fa;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+      padding: 20px;
+      background-color: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    }
+    h1 {
+      text-align: center;
+      color: #0077b6;
+    }
+    #preview {
+      width: 100%;
+      max-height: 400px;
+      object-fit: contain;
+      margin-top: 10px;
+      border-radius: 10px;
+    }
+    .input-area {
+      text-align: center;
+      padding: 20px;
+      border: 2px dashed #0288d1;
+      border-radius: 10px;
+      background: #f0f9ff;
+    }
+    input[type=file] {
+      margin-top: 10px;
+    }
+    .buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #0288d1;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0277bd;
+    }
+    .results {
+      margin-top: 30px;
+      background: #e1f5fe;
+      padding: 20px;
+      border-radius: 10px;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Dog Breed Classifier</h1>
+    <form method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <div class="input-area">
+        <label><strong>Upload a Dog Image:</strong></label><br>
+        <input type="file" name="image" accept="image/*" onchange="previewFile()"><br><br>
+
+        <label><strong>Or Use Webcam:</strong></label><br>
+        <video id="webcam" width="300" height="240" autoplay playsinline class="hidden"></video>
+        <canvas id="canvas" width="224" height="224" class="hidden"></canvas>
+        <input type="hidden" name="webcam_image" id="webcam_image">
+        <br>
+        <button type="button" onclick="toggleWebcam()">📷 Start Webcam</button>
+        <button type="button" onclick="captureWebcam()">📸 Capture</button>
+
+        <img id="preview" src="#" alt="Image Preview" class="hidden">
+      </div>
+
+      <div class="buttons">
+        <button type="button" onclick="clearAll()">Clear</button>
+        <button type="submit">Submit</button>
+      </div>
+    </form>
+
+    {% if predicted_class %}
+    <div class="results">
+      <h3>Prediction Result:</h3>
+      <p><strong>Top 5 Predictions:</strong></p>
+      <ul>
+        {% for label, conf in top_predictions %}
+          <li>{{ label }}: {{ conf|floatformat:2 }}%</li>
+        {% endfor %}
+      </ul>
+      <p><strong>Final Breed Prediction:</strong> {{ predicted_class }}</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <script>
+    const preview = document.getElementById('preview');
+    const video = document.getElementById('webcam');
+    const canvas = document.getElementById('canvas');
+    const webcam_image = document.getElementById('webcam_image');
+    let stream = null;
+
+    function previewFile() {
+      const file = document.querySelector('input[type=file]').files[0];
+      const reader = new FileReader();
+      reader.onloadend = function () {
+        preview.src = reader.result;
+        preview.classList.remove('hidden');
+      }
+      if (file) {
+        reader.readAsDataURL(file);
+      } else {
+        preview.src = "";
+        preview.classList.add('hidden');
+      }
+    }
+
+    function toggleWebcam() {
+      if (video.classList.contains('hidden')) {
+        navigator.mediaDevices.getUserMedia({ video: true })
+          .then(s => {
+            stream = s;
+            video.srcObject = stream;
+            video.classList.remove('hidden');
+          })
+          .catch(err => alert('Webcam access denied.'));
+      } else {
+        stopWebcam();
+      }
+    }
+
+    function stopWebcam() {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        video.classList.add('hidden');
+        stream = null;
+      }
+    }
+
+    function captureWebcam() {
+      const context = canvas.getContext('2d');
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataURL = canvas.toDataURL('image/jpeg');
+      webcam_image.value = dataURL;
+      preview.src = dataURL;
+      preview.classList.remove('hidden');
+    }
+
+    function clearAll() {
+      document.querySelector('input[type=file]').value = "";
+      webcam_image.value = "";
+      preview.src = "#";
+      preview.classList.add('hidden');
+      stopWebcam();
+    }
+  </script>
+</body>
+</html>

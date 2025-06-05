@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.sqlite3
+*.h5
+.env
+*.log
+/staticfiles/
+/media/
+node_modules/
+*.DS_Store
+*.idea/
+venv/
+git credential reject
+*.keras
+*.pyc
